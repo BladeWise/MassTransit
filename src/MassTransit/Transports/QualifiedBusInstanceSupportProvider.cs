@@ -15,11 +15,10 @@
 
         static string FormatBusName(object qualifier)
         {
-            var name = nameof(IBus);
-            if (name.Length >= 2 && name[0] == 'I' && char.IsUpper(name[1]))
-                name = name.Substring(1);
+            if (qualifier is null or DefaultQualifier)
+                return string.Empty; // Use the default
 
-            return (qualifier == null || Equals(qualifier, DefaultQualifier) || qualifier is "") ? $"masstransit-{KebabCaseEndpointNameFormatter.Instance.SanitizeName(name)}" : $"masstransit-{KebabCaseEndpointNameFormatter.Instance.SanitizeName(name)}.{qualifier}";
+            return qualifier as string ?? qualifier.ToString();
         }
 
         static QualifiedBusInstance CreateBus(TBusFactory busFactory, IServiceProvider provider, object qualifier)
@@ -28,10 +27,11 @@
                                          .Select(x => x.Value);
             var context = provider.GetRequiredService<Bind<IBus, IBusRegistrationContext>>()
                                   .Value;
+
             var busName = FormatBusName(qualifier);
             var instance = busFactory.CreateBus(context, specifications, busName);
 
-            return new(instance, qualifier, busName);
+            return new(instance, qualifier);
         }
 
         readonly ConcurrentDictionary<object, Lazy<BusInstanceInfo>> _register = new();
@@ -120,10 +120,7 @@
         static string FormatBusName(object qualifier)
         {
             var name = typeof(TBus).Name;
-            if (name.Length >= 2 && name[0] == 'I' && char.IsUpper(name[1]))
-                name = name.Substring(1);
-
-            return (qualifier == null || Equals(qualifier, DefaultQualifier) || qualifier is "") ? $"masstransit-{KebabCaseEndpointNameFormatter.Instance.SanitizeName(name)}" : $"masstransit-{KebabCaseEndpointNameFormatter.Instance.SanitizeName(name)}.{qualifier}";
+            return (qualifier is null or "") ? name : $"{name}.{qualifier}";
         }
 
         static QualifiedBusInstance<TBus> CreateBus(TBusFactory busFactory, IServiceProvider provider, object qualifier)
@@ -136,7 +133,7 @@
             var instance = busFactory.CreateBus(context, specifications, busName);
             var busInstance = provider.GetService<TBusInstance>() ?? ActivatorUtilities.CreateInstance<TBusInstance>(provider, instance.BusControl);
 
-            return new(busInstance, instance, qualifier, busName);
+            return new(busInstance, instance, qualifier);
         }
 
         readonly ConcurrentDictionary<object, Lazy<BusInstanceInfo>> _register = new();
@@ -162,7 +159,7 @@
         public Bind<TBus, IReceiveEndpointConnector> GetBind()
         {
             var busInstanceQualifierResolver = _serviceProvider.GetService<IBusInstanceQualifierResolver>();
-            var qualifier = (busInstanceQualifierResolver?.GetBusInstanceQualifier(typeof(TBus)) ?? DefaultQualifier) ?? throw new InvalidOperationException("No qualifier available in current scope.");
+            var qualifier = busInstanceQualifierResolver?.GetBusInstanceQualifier(typeof(TBus)) ?? DefaultQualifier;
             return GetBusInstanceInfo(qualifier)
                 .Bind;
         }
@@ -182,7 +179,7 @@
         public IBusInstance<TBus> GetBusInstance()
         {
             var busInstanceQualifierResolver = _serviceProvider.GetService<IBusInstanceQualifierResolver>();
-            var qualifier = (busInstanceQualifierResolver?.GetBusInstanceQualifier(typeof(TBus)) ?? DefaultQualifier) ?? throw new InvalidOperationException("No qualifier available in current scope.");
+            var qualifier = busInstanceQualifierResolver?.GetBusInstanceQualifier(typeof(TBus)) ?? DefaultQualifier;
             return GetBusInstanceInfo(qualifier)
                 .BusInstance;
         }
