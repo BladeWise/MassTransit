@@ -10,25 +10,17 @@ namespace MassTransit.SqlTransport.Configuration
     public class SqlRegistrationBusFactory :
         TransportRegistrationBusFactory<ISqlReceiveEndpointConfigurator>
     {
-        readonly SqlBusConfiguration _busConfiguration;
         readonly Action<IBusRegistrationContext, ISqlBusFactoryConfigurator>? _configure;
 
         public SqlRegistrationBusFactory(Action<IBusRegistrationContext, ISqlBusFactoryConfigurator>? configure)
-            : this(new SqlBusConfiguration(new SqlTopologyConfiguration(SqlBusFactory.CreateMessageTopology())), configure)
-        {
-        }
-
-        SqlRegistrationBusFactory(SqlBusConfiguration busConfiguration, Action<IBusRegistrationContext, ISqlBusFactoryConfigurator>? configure)
-            : base(busConfiguration.HostConfiguration)
         {
             _configure = configure;
-
-            _busConfiguration = busConfiguration;
         }
 
         public override IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName)
         {
-            var configurator = new SqlBusFactoryConfigurator(_busConfiguration);
+            var busConfiguration = new SqlBusConfiguration(new SqlTopologyConfiguration(SqlBusFactory.CreateMessageTopology()));
+            var configurator = new SqlBusFactoryConfigurator(busConfiguration);
 
             configurator.UseRawJsonSerializer(RawSerializerOptions.CopyHeaders, true);
 
@@ -43,7 +35,7 @@ namespace MassTransit.SqlTransport.Configuration
             //         h.Password(options.Pass);
             // });
 
-            return CreateBus(configurator, context, _configure, specifications);
+            return CreateBus(busConfiguration.HostConfiguration, configurator, context, _configure, specifications);
         }
     }
 }

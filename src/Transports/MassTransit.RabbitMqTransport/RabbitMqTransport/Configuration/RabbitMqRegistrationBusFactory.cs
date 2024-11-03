@@ -12,26 +12,17 @@ namespace MassTransit.RabbitMqTransport.Configuration
     public class RabbitMqRegistrationBusFactory :
         TransportRegistrationBusFactory<IRabbitMqReceiveEndpointConfigurator>
     {
-        readonly RabbitMqBusConfiguration _busConfiguration;
         readonly Action<IBusRegistrationContext, IRabbitMqBusFactoryConfigurator> _configure;
 
         public RabbitMqRegistrationBusFactory(Action<IBusRegistrationContext, IRabbitMqBusFactoryConfigurator> configure)
-            : this(new RabbitMqBusConfiguration(new RabbitMqTopologyConfiguration(RabbitMqBusFactory.CreateMessageTopology())), configure)
-        {
-        }
-
-        RabbitMqRegistrationBusFactory(RabbitMqBusConfiguration busConfiguration,
-            Action<IBusRegistrationContext, IRabbitMqBusFactoryConfigurator> configure)
-            : base(busConfiguration.HostConfiguration)
         {
             _configure = configure;
-
-            _busConfiguration = busConfiguration;
         }
 
         public override IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName)
         {
-            var configurator = new RabbitMqBusFactoryConfigurator(_busConfiguration);
+            var busConfiguration = new RabbitMqBusConfiguration(new RabbitMqTopologyConfiguration(RabbitMqBusFactory.CreateMessageTopology()));
+            var configurator = new RabbitMqBusFactoryConfigurator(busConfiguration);
 
             var options = context.GetRequiredService<IOptionsMonitor<RabbitMqTransportOptions>>().Get(busName);
 
@@ -68,7 +59,7 @@ namespace MassTransit.RabbitMqTransport.Configuration
                 }
             });
 
-            return CreateBus(configurator, context, _configure, specifications);
+            return CreateBus(busConfiguration.HostConfiguration, configurator, context, _configure, specifications);
         }
     }
 }

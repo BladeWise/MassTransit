@@ -11,25 +11,25 @@ namespace MassTransit.Transports
     public class BusDepot :
         IBusDepot
     {
-        readonly IDictionary<Type, IBusInstance> _instances;
+        readonly IDictionary<string, IBusInstance> _instances;
         readonly ILogger<BusDepot> _logger;
 
-        public BusDepot(IEnumerable<IBusInstance> instances, ILogger<BusDepot> logger)
+        public BusDepot(IEnumerable<IBusInstance> instances, IEnumerable<IBusInstanceProvider> busInstanceProviders, ILogger<BusDepot> logger)
         {
             _logger = logger;
-            _instances = instances.ToDictionary(x => x.InstanceType);
+            _instances = instances.Concat(busInstanceProviders.SelectMany(x => x.GetBusInstances())).Where(x => x is not IDelegatingBusInstance).ToDictionary(x => x.Name);
         }
 
         public Task Start(CancellationToken cancellationToken)
         {
-            _logger.LogDebug("Starting bus instances: {Instances}", string.Join(", ", _instances.Keys.Select(x => x.Name)));
+            _logger.LogDebug("Starting bus instances: {Instances}", string.Join(", ", _instances.Keys));
 
             return Task.WhenAll(_instances.Values.Select(x => x.BusControl.StartAsync(cancellationToken)));
         }
 
         public Task Stop(CancellationToken cancellationToken)
         {
-            _logger.LogDebug("Stopping bus instances: {Instances}", string.Join(", ", _instances.Keys.Select(x => x.Name)));
+            _logger.LogDebug("Stopping bus instances: {Instances}", string.Join(", ", _instances.Keys));
 
             return Task.WhenAll(_instances.Values.Select(x => x.BusControl.StopAsync(cancellationToken)));
         }

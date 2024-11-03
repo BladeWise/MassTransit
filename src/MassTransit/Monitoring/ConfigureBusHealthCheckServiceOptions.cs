@@ -17,9 +17,9 @@ namespace MassTransit.Monitoring
         readonly IServiceProvider _provider;
         readonly string[] _tags;
 
-        public ConfigureBusHealthCheckServiceOptions(IEnumerable<IBusInstance> busInstances, IServiceProvider provider)
+        public ConfigureBusHealthCheckServiceOptions(IEnumerable<IBusInstance> busInstances, IEnumerable<IBusInstanceProvider> busInstanceProviders, IServiceProvider provider)
         {
-            _busInstances = busInstances;
+            _busInstances = busInstances.Concat(busInstanceProviders.SelectMany(x => x.GetBusInstances())).Where(x => x is not IDelegatingBusInstance).ToList();
             _provider = provider;
             _tags = new[] { "ready", "masstransit" };
         }

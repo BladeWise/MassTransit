@@ -24,14 +24,9 @@ namespace MassTransit.Transports
 
 
     public interface IBusInstance<out TBus> :
-        IBusInstance
+        IWrappingBusInstance
         where TBus : IBus
     {
         new TBus Bus { get; }
-
-        /// <summary>
-        /// The original bus instance (since this is wrapped inside a multi-bus instance
-        /// </summary>
-        IBusInstance BusInstance { get; }
     }
 }

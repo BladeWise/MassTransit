@@ -11,26 +11,17 @@ namespace MassTransit.ActiveMqTransport.Configuration
     public class ActiveMqRegistrationBusFactory :
         TransportRegistrationBusFactory<IActiveMqReceiveEndpointConfigurator>
     {
-        readonly ActiveMqBusConfiguration _busConfiguration;
         readonly Action<IBusRegistrationContext, IActiveMqBusFactoryConfigurator> _configure;
 
         public ActiveMqRegistrationBusFactory(Action<IBusRegistrationContext, IActiveMqBusFactoryConfigurator> configure)
-            : this(new ActiveMqBusConfiguration(new ActiveMqTopologyConfiguration(ActiveMqBusFactory.CreateMessageTopology())), configure)
-        {
-        }
-
-        ActiveMqRegistrationBusFactory(ActiveMqBusConfiguration busConfiguration,
-            Action<IBusRegistrationContext, IActiveMqBusFactoryConfigurator> configure)
-            : base(busConfiguration.HostConfiguration)
         {
             _configure = configure;
-
-            _busConfiguration = busConfiguration;
         }
 
         public override IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName)
         {
-            var configurator = new ActiveMqBusFactoryConfigurator(_busConfiguration);
+            var busConfiguration = new ActiveMqBusConfiguration(new ActiveMqTopologyConfiguration(ActiveMqBusFactory.CreateMessageTopology()));
+            var configurator = new ActiveMqBusFactoryConfigurator(busConfiguration);
 
             var options = context.GetRequiredService<IOptionsMonitor<ActiveMqTransportOptions>>().Get(busName);
 
@@ -45,7 +36,7 @@ namespace MassTransit.ActiveMqTransport.Configuration
                     h.UseSsl();
             });
 
-            return CreateBus(configurator, context, _configure, specifications);
+            return CreateBus(busConfiguration.HostConfiguration, configurator, context, _configure, specifications);
         }
     }
 }

@@ -221,7 +221,7 @@ namespace MassTransit
                     busInstances = new[] { busInstance };
                 }
 
-                var testHarnessBusInstance = busInstances.FirstOrDefault(x => x is InMemoryTestHarnessBusInstance);
+                var testHarnessBusInstance = busInstances.Select(x => x.Unwrap()).FirstOrDefault(x => x is InMemoryTestHarnessBusInstance);
                 if (testHarnessBusInstance is InMemoryTestHarnessBusInstance testInstance)
                     return testInstance.Harness;
 

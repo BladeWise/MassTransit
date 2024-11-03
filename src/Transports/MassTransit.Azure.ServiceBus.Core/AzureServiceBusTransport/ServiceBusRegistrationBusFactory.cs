@@ -12,32 +12,23 @@ namespace MassTransit.AzureServiceBusTransport
     public class ServiceBusRegistrationBusFactory :
         TransportRegistrationBusFactory<IServiceBusReceiveEndpointConfigurator>
     {
-        readonly ServiceBusBusConfiguration _busConfiguration;
         readonly Action<IBusRegistrationContext, IServiceBusBusFactoryConfigurator> _configure;
 
         public ServiceBusRegistrationBusFactory(Action<IBusRegistrationContext, IServiceBusBusFactoryConfigurator> configure)
-            : this(new ServiceBusBusConfiguration(new ServiceBusTopologyConfiguration(AzureBusFactory.CreateMessageTopology())), configure)
-        {
-        }
-
-        ServiceBusRegistrationBusFactory(ServiceBusBusConfiguration busConfiguration,
-            Action<IBusRegistrationContext, IServiceBusBusFactoryConfigurator> configure)
-            : base(busConfiguration.HostConfiguration)
         {
             _configure = configure;
-
-            _busConfiguration = busConfiguration;
         }
 
         public override IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName)
         {
-            var configurator = new ServiceBusBusFactoryConfigurator(_busConfiguration);
+            var busConfiguration = new ServiceBusBusConfiguration(new ServiceBusTopologyConfiguration(AzureBusFactory.CreateMessageTopology()));
+            var configurator = new ServiceBusBusFactoryConfigurator(busConfiguration);
 
             var options = context.GetRequiredService<IOptionsMonitor<AzureServiceBusTransportOptions>>().Get(busName);
             if (!string.IsNullOrWhiteSpace(options.ConnectionString))
                 configurator.Host(options.ConnectionString);
 
-            return CreateBus(configurator, context, _configure, specifications);
+            return CreateBus(busConfiguration.HostConfiguration, configurator, context, _configure, specifications);
         }
 
         protected override IBusInstance CreateBusInstance(IBusControl bus, IHost<IServiceBusReceiveEndpointConfigurator> host,

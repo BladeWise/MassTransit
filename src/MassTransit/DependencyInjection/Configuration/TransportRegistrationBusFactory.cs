@@ -12,24 +12,17 @@ namespace MassTransit.Configuration
         IRegistrationBusFactory
         where TEndpointConfigurator : class, IReceiveEndpointConfigurator
     {
-        readonly IHostConfiguration _hostConfiguration;
-
-        protected TransportRegistrationBusFactory(IHostConfiguration hostConfiguration)
-        {
-            _hostConfiguration = hostConfiguration;
-        }
-
         public abstract IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName);
 
-        protected IBusInstance CreateBus<T, TConfigurator>(T configurator, IBusRegistrationContext context,
+        protected IBusInstance CreateBus<T, TConfigurator>(IHostConfiguration hostConfiguration, T configurator, IBusRegistrationContext context,
             Action<IBusRegistrationContext, TConfigurator> configure, IEnumerable<IBusInstanceSpecification> specifications)
             where T : TConfigurator, IBusFactory
             where TConfigurator : IBusFactoryConfigurator
         {
             LogContext.ConfigureCurrentLogContextIfNull(context);
 
-            _hostConfiguration.LogContext = LogContext.Current;
-            _hostConfiguration.ConsumerStopTimeout = context.GetService<IOptions<MassTransitHostOptions>>()?.Value.ConsumerStopTimeout;
+            hostConfiguration.LogContext = LogContext.Current;
+            hostConfiguration.ConsumerStopTimeout = context.GetService<IOptions<MassTransitHostOptions>>()?.Value.ConsumerStopTimeout;
 
             ConnectBusObservers(context, configurator);
 
@@ -52,9 +45,9 @@ namespace MassTransit.Configuration
                     x.DiscardSkippedMessages();
                 });
 
-                var host = _hostConfiguration.Build() as IHost<TEndpointConfigurator>;
+                var host = hostConfiguration.Build() as IHost<TEndpointConfigurator>;
 
-                var bus = new MassTransitBus(host, _hostConfiguration.BusConfiguration.BusObservers, busReceiveEndpointConfiguration);
+                var bus = new MassTransitBus(host, hostConfiguration.BusConfiguration.BusObservers, busReceiveEndpointConfiguration);
 
                 ConnectReceiveEndpointObservers(context, bus);
                 ConnectReceiveObservers(context, bus);
@@ -62,9 +55,9 @@ namespace MassTransit.Configuration
                 ConnectSendObservers(context, bus);
                 ConnectPublishObservers(context, bus);
 
-                _hostConfiguration.BusConfiguration.BusObservers.PostCreate(bus);
+                hostConfiguration.BusConfiguration.BusObservers.PostCreate(bus);
 
-                var instance = CreateBusInstance(bus, host, _hostConfiguration, context);
+                var instance = CreateBusInstance(bus, host, hostConfiguration, context);
 
                 foreach (var specification in busInstanceSpecifications)
                     specification.Configure(instance);
@@ -73,7 +66,7 @@ namespace MassTransit.Configuration
             }
             catch (Exception ex)
             {
-                _hostConfiguration.BusConfiguration.BusObservers.CreateFaulted(ex);
+                hostConfiguration.BusConfiguration.BusObservers.CreateFaulted(ex);
 
                 throw new ConfigurationException(result, "An exception occurred during bus creation", ex);
             }

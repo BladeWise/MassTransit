@@ -16,7 +16,7 @@ namespace MassTransit.Transports
             _bus = bus;
         }
 
-        public string Name { get; } = FormatBusName();
+        public string Name { get; protected set; } = FormatBusName();
         public Type InstanceType => typeof(TBus);
         public IBus Bus => _bus;
         public IBusInstance BusInstance { get; }

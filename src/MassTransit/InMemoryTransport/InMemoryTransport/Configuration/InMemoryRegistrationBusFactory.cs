@@ -9,28 +9,21 @@ namespace MassTransit.InMemoryTransport.Configuration
     public class InMemoryRegistrationBusFactory :
         TransportRegistrationBusFactory<IInMemoryReceiveEndpointConfigurator>
     {
-        readonly InMemoryBusConfiguration _busConfiguration;
+        readonly Uri _baseAddress;
         readonly Action<IBusRegistrationContext, IInMemoryBusFactoryConfigurator> _configure;
 
         public InMemoryRegistrationBusFactory(Uri baseAddress, Action<IBusRegistrationContext, IInMemoryBusFactoryConfigurator> configure)
-            : this(new InMemoryBusConfiguration(new InMemoryTopologyConfiguration(InMemoryBus.CreateMessageTopology()), baseAddress), configure)
         {
-        }
-
-        InMemoryRegistrationBusFactory(InMemoryBusConfiguration busConfiguration,
-            Action<IBusRegistrationContext, IInMemoryBusFactoryConfigurator> configure)
-            : base(busConfiguration.HostConfiguration)
-        {
+            _baseAddress = baseAddress;
             _configure = configure;
-
-            _busConfiguration = busConfiguration;
         }
 
         public override IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName)
         {
-            var configurator = new InMemoryBusFactoryConfigurator(_busConfiguration);
+            var busConfiguration = new InMemoryBusConfiguration(new InMemoryTopologyConfiguration(InMemoryBus.CreateMessageTopology()), _baseAddress);
+            var configurator = new InMemoryBusFactoryConfigurator(busConfiguration);
 
-            return CreateBus(configurator, context, _configure, specifications);
+            return CreateBus(busConfiguration.HostConfiguration, configurator, context, _configure, specifications);
         }
     }
 }

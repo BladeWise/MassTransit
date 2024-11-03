@@ -13,26 +13,17 @@ namespace MassTransit.AmazonSqsTransport.Configuration
     public class AmazonSqsRegistrationBusFactory :
         TransportRegistrationBusFactory<IAmazonSqsReceiveEndpointConfigurator>
     {
-        readonly AmazonSqsBusConfiguration _busConfiguration;
         readonly Action<IBusRegistrationContext, IAmazonSqsBusFactoryConfigurator> _configure;
 
         public AmazonSqsRegistrationBusFactory(Action<IBusRegistrationContext, IAmazonSqsBusFactoryConfigurator> configure)
-            : this(new AmazonSqsBusConfiguration(new AmazonSqsTopologyConfiguration(AmazonSqsBusFactory.CreateMessageTopology())), configure)
-        {
-        }
-
-        AmazonSqsRegistrationBusFactory(AmazonSqsBusConfiguration busConfiguration,
-            Action<IBusRegistrationContext, IAmazonSqsBusFactoryConfigurator> configure)
-            : base(busConfiguration.HostConfiguration)
         {
             _configure = configure;
-
-            _busConfiguration = busConfiguration;
         }
 
         public override IBusInstance CreateBus(IBusRegistrationContext context, IEnumerable<IBusInstanceSpecification> specifications, string busName)
         {
-            var configurator = new AmazonSqsBusFactoryConfigurator(_busConfiguration);
+            var busConfiguration = new AmazonSqsBusConfiguration(new AmazonSqsTopologyConfiguration(AmazonSqsBusFactory.CreateMessageTopology()));
+            var configurator = new AmazonSqsBusFactoryConfigurator(busConfiguration);
 
             var options = context.GetRequiredService<IOptionsMonitor<AmazonSqsTransportOptions>>().Get(busName);
             if (!string.IsNullOrWhiteSpace(options.Region))
@@ -54,7 +45,7 @@ namespace MassTransit.AmazonSqsTransport.Configuration
                 });
             }
 
-            return CreateBus(configurator, context, _configure, specifications);
+            return CreateBus(busConfiguration.HostConfiguration, configurator, context, _configure, specifications);
         }
     }
 }
