@@ -17,7 +17,7 @@ public class RabbitMqStreamConfigurator :
 
     public long MaxLength
     {
-        set => _settings.QueueArguments["x-max-length-bytes"] = value;
+        set => _settings.QueueArguments[Headers.XMaxLengthInBytes] = value;
     }
 
     public TimeSpan MaxAge
@@ -34,18 +34,23 @@ public class RabbitMqStreamConfigurator :
             else if (value.TotalSeconds >= 1)
                 text = $"{value.TotalSeconds:F0}s";
 
-            _settings.QueueArguments["x-max-age"] = text;
+            _settings.QueueArguments[Headers.XMaxAge] = text;
         }
     }
 
     public long MaxSegmentSize
     {
-        set => _settings.QueueArguments["x-stream-max-segment-size-bytes"] = value;
+        set => _settings.QueueArguments[Headers.XStreamMaxSegmentSizeInBytes] = value;
+    }
+
+    public string Filter
+    {
+        set => _settings.ConsumeArguments["x-stream-filter"] = value;
     }
 
     public void FromOffset(long offset)
     {
-        _settings.ConsumeArguments["x-stream-offset"] = offset;
+        _settings.ConsumeArguments[Headers.XStreamOffset] = offset;
     }
 
     public void FromTimestamp(DateTime timestamp)
@@ -53,16 +58,16 @@ public class RabbitMqStreamConfigurator :
         if (timestamp.Kind == DateTimeKind.Local)
             timestamp = timestamp.ToUniversalTime();
 
-        _settings.ConsumeArguments.SetAmqpTimestamp("x-stream-offset", timestamp);
+        _settings.ConsumeArguments.SetAmqpTimestamp(Headers.XStreamOffset, timestamp);
     }
 
     public void FromFirst()
     {
-        _settings.ConsumeArguments["x-stream-offset"] = "first";
+        _settings.ConsumeArguments[Headers.XStreamOffset] = "first";
     }
 
     public void FromLast()
     {
-        _settings.ConsumeArguments["x-stream-offset"] = "last";
+        _settings.ConsumeArguments[Headers.XStreamOffset] = "last";
     }
 }
